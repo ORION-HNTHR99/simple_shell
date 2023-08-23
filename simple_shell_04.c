@@ -6,6 +6,7 @@
 
 #define MAX_INPUT_LENGTH 1024
 #define MAX_ARGS 64
+#define PROMPT_STRING "My$hell"
 
 /**
  * remove_newline - Removes the newline character from a string.
@@ -13,10 +14,8 @@
  */
 void remove_newline(char *str)
 {
-	/* Find the newline character */
 	char *newline = strchr(str, '\n');
 
-	/* If found, replace it with null terminator */
 	if (newline)
 	{
 		*newline = '\0';
@@ -24,35 +23,31 @@ void remove_newline(char *str)
 }
 
 /**
- * execute_command - Executes a given command.
+ * execute_command - Executes a given command with arguments.
  * @cmd: The command to execute.
+ * @args: The array of command arguments.
  *
  * Return: 1 if executed successfully, 0 if not.
  */
-int execute_command(char *cmd)
+int execute_command(char *cmd, char *args[])
 {
-	/* Check if the command is executable */
 	if (access(cmd, X_OK) == 0)
 	{
 		pid_t child_pid = fork();
 
-		/* Check for fork error */
 		if (child_pid == -1)
 		{
 			perror("fork");
 			exit(EXIT_FAILURE);
 		}
-		/* Child process */
 		else if (child_pid == 0)
 		{
-			/* Execute the command */
-			if (execlp(cmd, cmd, (char *)NULL) == -1)
+			if (execvp(cmd, args) == -1)
 			{
-				perror("execlp");
+				perror("execvp");
 				exit(EXIT_FAILURE);
 			}
 		}
-		/* Parent process */
 		else
 		{
 			wait(NULL);
@@ -73,16 +68,17 @@ int execute_command(char *cmd)
  */
 int main(void)
 {
-	char user_input[MAX_INPUT_LENGTH];
+	char userInput[MAX_INPUT_LENGTH];
+	char cmd[MAX_INPUT_LENGTH];
+	char *args[MAX_ARGS];
+	int numArgs;
 
 	while (1)
 	{
-		printf("#myshell$ ");
+		printf("%s", PROMPT_STRING);
 
-		/* Get user input */
-		if (!fgets(user_input, MAX_INPUT_LENGTH, stdin))
+		if (!fgets(userInput, MAX_INPUT_LENGTH, stdin))
 		{
-			/* Check for end of file */
 			if (feof(stdin))
 			{
 				printf("\n");
@@ -92,22 +88,20 @@ int main(void)
 			exit(EXIT_FAILURE);
 		}
 
-		/* Remove newline character */
-		remove_newline(user_input);
+		remove_newline(userInput);
+		numArgs = 0;
 
-		/* Check for exit command */
-		if (strcmp(user_input, "exit") == 0)
+		args[numArgs] = strtok(userInput, " ");
+		while (args[numArgs] != NULL)
 		{
-			exit(EXIT_SUCCESS);
+			numArgs++;
+			args[numArgs] = strtok(NULL, " ");
 		}
+		args[numArgs] = NULL;
 
-		/* Execute the command */
-		if (strlen(user_input) > 0)
+		if (numArgs > 0)
 		{
-			if (!execute_command(user_input))
-			{
-				continue;
-			}
+			execute_command(cmd, args);
 		}
 	}
 
